@@ -1,0 +1,71 @@
+body common control
+{
+  inputs => { "$(sys.libdir)/stdlib.cf" };
+  bundlesequence =>  { go_ntp_conf } ;
+
+}
+bundle agent go_ntp_conf
+{
+  vars:
+
+      "ntp_conf_template" string => "$(this.promise_dirname)/ntp.conf.mustache";
+      "ntp_conf_file" string => "/tmp/ntp.conf";
+      "ntp_service" string => "ntp";
+      "data_interface_bundle" string => "example_ntp_conf_data_interface_policy_array";
+
+  methods:
+      "NTP_Inventory"
+        usebundle => ntp_conf_inventory( $(ntp_conf_file) ),
+        comment => "Take inventory of the ntp config file";
+
+      "NTP_Data"
+        usebundle => example_ntp_conf_data_interface_policy_array,
+        comment => "Ensure our data has converged  before trying to use it.";
+
+      "NTP_Conf"
+        usebundle => ntp_conf( "$(ntp_conf_file)", "$(ntp_conf_template)", "$(data_interface_bundle)" );
+
+      # These are both standard models, the ntp specific service restart should
+      # be replaced with a standard implementation.
+      "NTP_Service_Config"
+        usebundle => ntp_service_restart_conf_change( "$(ntp_service)", "$(ntp_conf_file)" );
+
+      # Instead of activating the bundle here, perhaps I could tag a variable,
+      # and use variables matching to get a combined list of all services that
+      # should be running, and pass the list. This would reduce the number of
+      # bundle activations, and could potentially increase overall efficiencey.
+      "NTP_Service"
+        usebundle => standard_services( "$(ntp_service)", "start" );
+}
+
+bundle common example_ntp_conf_data_interface_policy_array
+{
+  vars:
+    ubuntu::
+      "data[ntp_conf][server][0]" string => "0.ubuntu.pool.ntp.org";
+      "data[ntp_conf][server][1]" string => "1.ubuntu.pool.ntp.org";
+      "data[ntp_conf][server][2]" string => "2.ubuntu.pool.ntp.org";
+      "data[ntp_conf][server][3]" string => "3.ubuntu.pool.ntp.org";
+      "data[ntp_conf][restrict][0]" string => "-4 default kod notrap nomodify nopeer noquery";
+      "data[ntp_conf][restrict][1]" string => "-6 default kod notrap nomodify nopeer noquery";
+      "data[ntp_conf][restrict][1]" string => "-6 default kod notrap nomodify nopeer noquery";
+      "data[ntp_conf][restrict][2]" string => "127.0.0.1";
+      "data[ntp_conf][restrict][3]" string => "::1";
+      "data[ntp_conf][statsdir]" string => "/var/log/ntpstats/";
+      "data[ntp_conf][driftfile]" string => "/var/lib/ntp/ntp.drift";
+      "data[ntp_conf][statistics]" string => "loopstats peerstats clockstats";
+      "data[ntp_conf][filegen][0]" string => "loopstats file loopstats type day enable";
+      "data[ntp_conf][filegen][1]" string => "peerstats file peerstats type day enable";
+      "data[ntp_conf][filegen][2]" string => "clockstats file clockstats type day enable";
+      "data[ntp_conf][disable]" string => "auth";
+      "t" data => parsejson('{}');
+      "d" data => mergedata( "t", "data" );
+      "i" slist => getindices(d);
+      "j" slist => getindices(data);
+
+  reports:
+    DEBUG|DEBUG_example_ntp_conf_data_interface_policy_array::
+    "DEBUG $(this.bundle)";
+    "$(const.t)mergedata idx: $(i)";
+    "$(const.t)data array idx: $(j)";
+}

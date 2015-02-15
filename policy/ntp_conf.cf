@@ -1,0 +1,45 @@
+bundle agent ntp_conf(config_file, template, data_interface_bundle)
+{
+  vars:
+      "ntp_conf_idx" slist => getindices( "$(data_interface_bundle).data[$(this.bundle)]" );
+
+      # Pull out restricts from data interface
+      "idx" slist => getindices( "$(data_interface_bundle).data[$(this.bundle)][restrict]" );
+      "restrict[$(idx)]" string => "$($(data_interface_bundle).data[$(this.bundle)][restrict][$(idx)])";
+      "restricts" slist => getvalues(restrict);
+
+      # Pull out servers from data interface
+      "idx" slist => getindices( "$(data_interface_bundle).data[$(this.bundle)][server]" );
+      "server[$(idx)]" string => "$($(data_interface_bundle).data[$(this.bundle)][server][$(idx)])";
+      "servers" slist => getvalues(server);
+
+      # Pull out filegens from data interface
+      "idx" slist => getindices( "$(data_interface_bundle).data[$(this.bundle)][filegen]" );
+      "filegen[$(idx)]" string => "$($(data_interface_bundle).data[$(this.bundle)][filegen][$(idx)])";
+      "filegens" slist => getvalues(filegen);
+
+      "driftfile" string => "$($(data_interface_bundle).data[$(this.bundle)][driftfile])";
+      "statsdir" string => "$($(data_interface_bundle).data[$(this.bundle)][statsdir])";
+      "statistics" string => "$($(data_interface_bundle).data[$(this.bundle)][statistics])";
+      "disable" string => "$($(data_interface_bundle).data[$(this.bundle)][disable])";
+
+  files:
+    "$(config_file)"
+      handle => "ntp_conf_config_file_present",
+      create => "true";
+
+    "$(config_file)"
+      edit_template => "$(template)",
+      handle => "ntp_conf_config_file_content",
+      classes => scoped_classes_generic("bundle", "ntp_conf_config_file_content"),
+      template_method => "mustache";
+
+  reports:
+    DEBUG|DEBUG_ntp_conf::
+    "DEBUG $(this.bundle)";
+    "$(const.t)data_interface_bundle: '$(data_interface_bundle)'";
+    "$(const.t)driftfile $(driftfiles)";
+    "$(const.t)restrict $(restricts)";
+    "$(const.t)server $(servers)";
+    "$(const.t)filegen $(filegens)";
+}

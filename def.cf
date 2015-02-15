@@ -1,0 +1,14 @@
+bundle common ntp_def_file_control
+{
+  vars:
+    "input[ntp_conf]" string => "$(this.promise_dirname)/ntp_conf.cf";
+    "input[ntp_service_restart_conf_change]" string => "$(this.promise_dirname)/ntp_service_restart_conf_change.cf";
+    "input[ntp_conf_inventory]" string => "$(this.promise_dirname)/ntp_conf_inventory.cf";
+
+    "inputs" slist => getvalues(input);
+}
+
+body file control
+{
+    inputs => { @(ntp_def_file_control.inputs) };
+}

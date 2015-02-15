@@ -1,0 +1,14 @@
+bundle agent ntp_service_restart_conf_change(service_name, config_file)
+{
+  files:
+      "$(config_file)"
+        changes => detect_content,
+        classes => scoped_classes_generic("bundle", "ntp_service_restart_conf_change_config_file"),
+        handle => "ntp_service_restart_conf_change_config_file";
+
+  services:
+      ntp_service_restart_conf_change_config_file_repaired::
+        "$(service_name)"
+          service_policy => "restart";
+
+}

@@ -1,0 +1,28 @@
+bundle agent ntp_conf_inventory(config_file)
+{
+  vars:
+    have_ntp_conf::
+      "data" data => data_readstringarrayidx("$(config_file)", "\s*#[^\n]*", "\n", 1M, 1M);
+
+      "data_idx" slist => getindices(data);
+      "entry[$(data_idx)]"
+        meta => { "inventory", "attribute_name=NTP Conf" },
+        string => "$(data[$(data_idx)])";
+
+      # Individual entries look better in MP, but this is how you would report it
+      # as a list instead of individual vars.
+      #"entries" slist => getvalues(entry);
+
+      # Is there any need to tear these apart further?
+      #"restricts" slist => grep("^restrict\s+.*", entries);
+
+  classes:
+      "have_ntp_conf" expression => fileexists( $(config_file) );
+
+
+  reports:
+    DEBUG|DEBUG_ntp_conf_inventory::
+      "DEBUG $(this.bundle)";
+      "$(const.t)idx $(data_idx)";
+      "$(const.t)$(data[$(data_idx)])";
+}
